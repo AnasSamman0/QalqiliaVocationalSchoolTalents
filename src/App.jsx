@@ -168,14 +168,37 @@ export default function App() {
 
         {/* العرض */}
         <div style={{marginTop: '40px'}}>
+            
+            {selSpec && (
+              <button 
+                onClick={() => {setSelSpec(null); setSelGrade(null)}} 
+                style={{
+                  display: 'block',
+                  margin: '0 auto 20px auto',
+                  padding: '10px 25px',
+                  backgroundColor: '#1e3a8a',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                }}
+              >
+                🏠 العودة للقائمة الرئيسية
+              </button>
+            )}
+
             <h2 style={styles.sectionTitle}>
                 {!selSpec ? "⭐ أبرز أعمال الأسبوع ⭐" : `أعمال قسم ${selSpec} - ${selGrade}`}
             </h2>
+
             <div style={styles.videoGrid}>
                 {posts.map(p => (
                     <div key={p.id} style={styles.videoCard}>
                         <div style={styles.iframeWrapper}>
-                            <iframe src={`https://www.youtube.com/embed/${p.video_url}`} frameBorder="0" allowFullScreen></iframe>
+                            <iframe src={`https://www.youtube.com/embed/${p.video_url}`} frameBorder="0" allowFullScreen title={p.title}></iframe>
                         </div>
                         <div style={styles.cardBody}>
                             <h4 style={styles.cardTitle}>{p.title}</h4>
