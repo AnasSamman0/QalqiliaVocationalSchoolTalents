@@ -1,7 +1,30 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { 
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-  direction: rtl; 
-  background-color: #f4f7f9; 
-  color: #333;
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  direction: rtl;
+  background-color: #f8fafc; /* لون خلفية أفتح قليلاً ومريح */
+  color: #334155;
+  line-height: 1.6;
+}
+
+/* تحسين شكل شريط التمرير (Scrollbar) */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
