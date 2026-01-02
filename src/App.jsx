@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import "./App.css"; // استيراد التنسيقات الجديدة
 
-// ⚠️ ضع معلوماتك هنا
-const supabase = createClient("https://nlyujfsaanqchbjxbvrw.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5seXVqZnNhYW5xY2hianhidnJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyNzIxMjcsImV4cCI6MjA4Mjg0ODEyN30.EeCMljDcukll62djHZry2KmV4PX4SDH9e55GIS9Ji_o");
+// إعداد Supabase
+const supabase = createClient(
+  "https://nlyujfsaanqchbjxbvrw.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5seXVqZnNhYW5xY2hianhidnJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyNzIxMjcsImV4cCI6MjA4Mjg0ODEyN30.EeCMljDcukll62djHZry2KmV4PX4SDH9e55GIS9Ji_o"
+);
 
-const SPECIALTIES = ["النجارة", "كهرباء سيارات", "أوتوميكاترونيكس", "طاقة متجددة", "اتصالات", "تجليس ودهان", "مساحة وبناء", "تطبيقات هواتف ذكية", "كهرباء استعمال", "صيانة حاسوب"];
+const SPECIALTIES = [
+  "النجارة", "كهرباء سيارات", "أوتوميكاترونيكس", "طاقة متجددة",
+  "اتصالات", "تجليس ودهان", "مساحة وبناء", "تطبيقات هواتف ذكية",
+  "كهرباء استعمال", "صيانة حاسوب"
+];
 const GRADES = ["الحادي عشر", "الثاني عشر"];
 
 export default function App() {
@@ -12,39 +20,27 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // فلاتر
+
+  // فلاتر التصفح
   const [selSpec, setSelSpec] = useState(null);
   const [selGrade, setSelGrade] = useState(null);
-  
-  // نموذج الإضافة
+
+  // حقول نموذج الإضافة
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
 
-  // 1. إدارة تسجيل الدخول بدقة
-// استبدل الـ useEffect الأول بهذا الكود
+  // 1. إدارة الجلسة والتحقق من المستخدم
   useEffect(() => {
     const initSession = async () => {
       try {
-        console.log("Starting session check..."); // 1. تأكد أن الكود بدأ
-        
         const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-            console.error("Supabase Error:", error); // سيظهر الخطأ في الكونسول
-            throw error;
-        }
-
-        // استخدام await هنا لضمان انتهاء التحقق من الأدمن قبل إزالة التحميل
+        if (error) throw error;
         await handleUserChange(data?.session?.user || null);
-        
       } catch (err) {
-        console.error("General Error:", err.message);
+        console.error("Session Error:", err.message);
       } finally {
-        // هذا السطر سيعمل مهما حدث، وسيلغي شاشة التحميل
-        console.log("Finished loading.");
-        setLoading(false); 
+        setLoading(false);
       }
     };
 
@@ -60,6 +56,7 @@ export default function App() {
   const handleUserChange = async (currentUser) => {
     if (currentUser) {
       setUser(currentUser);
+      // التحقق مما إذا كان المستخدم أدمن
       const { data } = await supabase
         .from('admins')
         .select('email')
@@ -72,188 +69,199 @@ export default function App() {
     }
   };
 
-  // 2. جلب البيانات
+  // 2. جلب البيانات من قاعدة البيانات
   useEffect(() => {
     fetchData();
   }, [selSpec, selGrade]);
 
   async function fetchData() {
     let query = supabase.from("posts").select("*");
+    
     if (selSpec) {
       query = query.eq("specialty", selSpec);
       if (selGrade) query = query.eq("grade", selGrade);
     } else {
-      query = query.limit(6); // لوحة الشرف
+      query = query.limit(9); // عرض آخر 9 أعمال في الصفحة الرئيسية
     }
+
     const { data } = await query.order("created_at", { ascending: false });
     setPosts(data || []);
   }
 
+  // 3. نشر عمل جديد
   const handlePublish = async (e) => {
     e.preventDefault();
+    // استخراج ID الفيديو من الرابط
     const vId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([\w\-]{11})/)?.[1];
-    if (!vId) return alert("❌ رابط يوتيوب غير صحيح");
+    
+    if (!vId) return alert("❌ رابط يوتيوب غير صحيح، يرجى التأكد من الرابط.");
 
     const { error } = await supabase.from("posts").insert([{ 
-      title, description: desc, video_url: vId, specialty: selSpec, grade: selGrade, user_email: user.email 
+      title, 
+      description: desc, 
+      video_url: vId, 
+      specialty: selSpec, 
+      grade: selGrade, 
+      user_email: user.email 
     }]);
     
     if (!error) {
-      alert("✅ تم النشر بنجاح");
+      alert("✅ تم النشر بنجاح!");
       setTitle(""); setUrl(""); setDesc("");
       fetchData();
+    } else {
+      alert("حدث خطأ أثناء النشر.");
     }
   };
 
-  if (loading) return <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', fontSize:'1.5rem'}}>جاري التحميل...</div>;
+  // شاشة التحميل
+  if (loading) return (
+    <div className="loading-screen">
+      <div>جاري تحميل بوابة الإبداع...</div>
+    </div>
+  );
 
   return (
-    <div style={styles.container}>
+    <div className="container">
       {/* Navbar */}
-      <nav style={styles.nav}>
-        <div style={styles.navContent}>
-          <h2 onClick={() => {setSelSpec(null); setSelGrade(null)}} style={styles.logo}>صناعية قلقيلية 🛠️</h2>
+      <nav className="navbar">
+        <div className="nav-content">
+          <h2 onClick={() => {setSelSpec(null); setSelGrade(null)}} className="logo">
+            صناعية قلقيلية 🛠️
+          </h2>
+          
           {!user ? (
-            <button onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })} style={styles.loginBtn}>دخول المعلمين</button>
+            <button 
+              onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })} 
+              className="btn btn-primary"
+            >
+              دخول المعلمين
+            </button>
           ) : (
-            <div style={styles.userInfo}>
-              <span style={styles.userEmail}>{isAdmin ? "الأستاذ المميز ✅" : user.email}</span>
-              <button onClick={() => supabase.auth.signOut()} style={styles.logoutBtn}>خروج</button>
+            <div className="user-info">
+              <span className="user-email">{isAdmin ? "الأستاذ المشرف ✅" : user.email}</span>
+              <button onClick={() => supabase.auth.signOut()} className="btn btn-danger">خروج</button>
             </div>
           )}
         </div>
       </nav>
 
-      {/* Header */}
-      <header style={styles.header}>
-        <h1 style={styles.headerTitle}>بوابة الإبداع الطلابي</h1>
-        <p style={styles.headerSub}>المدرسة الثانوية الصناعية - قلقيلية</p>
+      {/* Header Banner */}
+      <header className="header">
+        <h1>بوابة الإبداع الطلابي</h1>
+        <p>المدرسة الثانوية الصناعية - قلقيلية</p>
       </header>
 
-      <main style={styles.main}>
-        {/* اختيار التخصص */}
+      <main className="main-content">
+        
+        {/* 1. اختيار التخصص (الصفحة الرئيسية) */}
         {!selSpec && (
-          <div style={styles.grid}>
-            {SPECIALTIES.map(s => (
-              <div key={s} onClick={() => setSelSpec(s)} style={styles.cardSpec}>{s}</div>
-            ))}
-          </div>
-        )}
-
-        {/* اختيار الصف */}
-        {selSpec && !selGrade && (
-          <div style={styles.selectionBox}>
-            <h3 style={{marginBottom: '20px'}}>قسم {selSpec}: اختر الصف</h3>
-            <div style={{display:'flex', gap:'15px', justifyContent:'center'}}>
-              {GRADES.map(g => (
-                <button key={g} onClick={() => setSelGrade(g)} style={styles.btnGrade}>{g}</button>
+          <>
+             <h2 className="section-title">⭐ اختر التخصص للتصفح ⭐</h2>
+             <div className="grid">
+              {SPECIALTIES.map(s => (
+                <div key={s} onClick={() => setSelSpec(s)} className="card-spec">
+                  {s}
+                </div>
               ))}
             </div>
-            <button onClick={() => setSelSpec(null)} style={styles.btnBack}>العودة للرئيسية</button>
+             <div style={{marginTop: '50px'}}>
+               <h2 className="section-title">✨ أحدث الأعمال المضافة</h2>
+               <div className="video-grid">
+                  {posts.map(p => <VideoCard key={p.id} p={p} isAdmin={isAdmin} onDelete={fetchData} />)}
+               </div>
+             </div>
+          </>
+        )}
+
+        {/* 2. اختيار الصف */}
+        {selSpec && !selGrade && (
+          <div className="selection-box">
+            <h3>قسم {selSpec}</h3>
+            <p style={{color:'#64748b', margin:'10px 0'}}>يرجى اختيار الصف الدراسي لعرض المشاريع</p>
+            <div className="grades-wrapper">
+              {GRADES.map(g => (
+                <button key={g} onClick={() => setSelGrade(g)} className="btn-grade">
+                  {g}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setSelSpec(null)} className="btn btn-back">العودة للتخصصات</button>
           </div>
         )}
 
-        {/* نموذج الإضافة للأدمن */}
-        {selSpec && selGrade && isAdmin && (
-          <div style={styles.adminPanel}>
-            <h3 style={{color: '#1e3a8a', marginBottom: '15px'}}>نشر عمل جديد في {selSpec}</h3>
-            <form onSubmit={handlePublish} style={styles.form}>
-              <input style={styles.input} placeholder="اسم الطالب والمشروع" value={title} onChange={e=>setTitle(e.target.value)} required />
-              <input style={styles.input} placeholder="رابط يوتيوب" value={url} onChange={e=>setUrl(e.target.value)} required />
-              <textarea style={styles.textarea} placeholder="وصف العمل..." value={desc} onChange={e=>setDesc(e.target.value)} required />
-              <button type="submit" style={styles.btnSubmit}>نشر الآن 🚀</button>
-            </form>
-          </div>
-        )}
+        {/* 3. عرض المشاريع داخل التخصص والصف */}
+        {selSpec && selGrade && (
+          <div>
+            <button onClick={() => {setSelSpec(null); setSelGrade(null)}} className="btn btn-main-back">
+              🏠 العودة للقائمة الرئيسية
+            </button>
 
-        {/* العرض */}
-        <div style={{marginTop: '40px'}}>
-            
-            {selSpec && (
-              <button 
-                onClick={() => {setSelSpec(null); setSelGrade(null)}} 
-                style={{
-                  display: 'block',
-                  margin: '0 auto 20px auto',
-                  padding: '10px 25px',
-                  backgroundColor: '#1e3a8a',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '1rem',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-                }}
-              >
-                🏠 العودة للقائمة الرئيسية
-              </button>
+            {/* نموذج الإضافة للأدمن فقط */}
+            {isAdmin && (
+              <div className="admin-panel">
+                <h3 style={{color: '#1e3a8a', marginBottom: '15px'}}>نشر عمل جديد في {selSpec} - {selGrade}</h3>
+                <form onSubmit={handlePublish} className="form">
+                  <input className="input-field" placeholder="عنوان المشروع / اسم الطالب" value={title} onChange={e=>setTitle(e.target.value)} required />
+                  <input className="input-field" placeholder="رابط الفيديو (YouTube)" value={url} onChange={e=>setUrl(e.target.value)} required />
+                  <textarea className="input-field" placeholder="وصف موجز للمشروع..." rows="3" value={desc} onChange={e=>setDesc(e.target.value)} required />
+                  <button type="submit" className="btn btn-success">نشر المشروع 🚀</button>
+                </form>
+              </div>
             )}
 
-            <h2 style={styles.sectionTitle}>
-                {!selSpec ? "⭐ أبرز أعمال الأسبوع ⭐" : `أعمال قسم ${selSpec} - ${selGrade}`}
-            </h2>
+            <h2 className="section-title">أعمال قسم {selSpec} - {selGrade}</h2>
 
-            <div style={styles.videoGrid}>
-                {posts.map(p => (
-                    <div key={p.id} style={styles.videoCard}>
-                        <div style={styles.iframeWrapper}>
-                            <iframe src={`https://www.youtube.com/embed/${p.video_url}`} frameBorder="0" allowFullScreen title={p.title}></iframe>
-                        </div>
-                        <div style={styles.cardBody}>
-                            <h4 style={styles.cardTitle}>{p.title}</h4>
-                            <p style={styles.cardDesc}>{p.description}</p>
-                            {isAdmin && (
-                                <button onClick={async() => { if(confirm("حذف؟")){ await supabase.from('posts').delete().eq('id', p.id); fetchData(); } }} style={styles.delBtn}>حذف 🗑️</button>
-                            )}
-                        </div>
-                    </div>
-                ))}
+            <div className="video-grid">
+              {posts.length > 0 ? (
+                posts.map(p => (
+                  <VideoCard key={p.id} p={p} isAdmin={isAdmin} onDelete={fetchData} />
+                ))
+              ) : (
+                <p style={{textAlign:'center', color:'#94a3b8', width:'100%', gridColumn:'1/-1'}}>لا توجد أعمال مضافة في هذا القسم حتى الآن.</p>
+              )}
             </div>
-            {posts.length === 0 && <p style={styles.emptyMsg}>لا توجد أعمال لعرضها حالياً.</p>}
-        </div>
+          </div>
+        )}
       </main>
 
-      <footer style={styles.footer}>
-        <p>المدرسة الثانوية الصناعية - قلقيلية</p>
-        <p style={{fontSize:'0.8rem', marginTop:'5px', color:'#94a3b8'}}>برمجة: أنس سمان | فكرة: محمد نزال</p>
+      <footer className="footer">
+        <p>جميع الحقوق محفوظة © {new Date().getFullYear()} - المدرسة الثانوية الصناعية - قلقيلية</p>
+        <p style={{fontSize:'0.8rem', marginTop:'8px', color:'#94a3b8'}}>
+          تصميم وبرمجة: أنس سمان | فكرة وإشراف: محمد نزال
+        </p>
       </footer>
     </div>
   );
 }
 
-// 🎨 كائنات التنسيق (Styles)
-const styles = {
-  container: { direction: 'rtl', fontFamily: 'system-ui, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh' },
-  nav: { background: '#0f172a', color: '#fff', padding: '15px 5%', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' },
-  navContent: { maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  logo: { cursor: 'pointer', margin: 0, fontSize: '1.4rem' },
-  loginBtn: { background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
-  userInfo: { display: 'flex', alignItems: 'center', gap: '15px' },
-  userEmail: { fontSize: '0.9rem', color: '#cbd5e1' },
-  logoutBtn: { background: '#ef4444', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer' },
-  header: { background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', color: '#fff', padding: '60px 20px', textAlign: 'center' },
-  headerTitle: { fontSize: '2.5rem', margin: 0 },
-  headerSub: { fontSize: '1.1rem', opacity: 0.9, marginTop: '10px' },
-  main: { maxWidth: '1100px', margin: '0 auto', padding: '40px 20px' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' },
-  cardSpec: { background: '#fff', padding: '30px 15px', borderRadius: '15px', textAlign: 'center', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', transition: '0.2s', fontSize: '1.1rem' },
-  selectionBox: { textAlign: 'center', background: '#fff', padding: '40px', borderRadius: '20px', boxShadow: '0 10px 15px rgba(0,0,0,0.05)' },
-  btnGrade: { padding: '15px 40px', background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 'bold' },
-  btnBack: { marginTop: '20px', display: 'block', width: '100%', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' },
-  adminPanel: { background: '#f0f9ff', padding: '25px', borderRadius: '15px', border: '2px dashed #3b82f6' },
-  form: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  input: { padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem' },
-  textarea: { padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', minHeight: '80px' },
-  btnSubmit: { background: '#10b981', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
-  sectionTitle: { textAlign: 'center', color: '#1e293b', marginBottom: '30px' },
-  videoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '25px' },
-  videoCard: { background: '#fff', borderRadius: '15px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' },
-  iframeWrapper: { position: 'relative', paddingBottom: '56.25%', height: 0 },
-  cardBody: { padding: '20px' },
-  cardTitle: { margin: '0 0 10px 0', color: '#1e293b' },
-  cardDesc: { fontSize: '0.9rem', color: '#64748b', lineHeight: '1.4' },
-  delBtn: { color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', marginTop: '15px', fontWeight: 'bold', padding: 0 },
-  emptyMsg: { textAlign: 'center', padding: '40px', color: '#94a3b8' },
-  footer: { textAlign: 'center', padding: '40px', background: '#0f172a', color: '#fff', marginTop: '50px' }
-};
+// مكون فرعي لبطاقة الفيديو (لتقليل تكرار الكود)
+function VideoCard({ p, isAdmin, onDelete }) {
+  const handleDelete = async () => {
+    if (confirm("هل أنت متأكد من حذف هذا المشروع؟")) {
+       await supabase.from('posts').delete().eq('id', p.id);
+       onDelete();
+    }
+  };
+
+  return (
+    <div className="video-card">
+      <div className="iframe-container">
+        <iframe 
+          src={`https://www.youtube.com/embed/${p.video_url}`} 
+          frameBorder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowFullScreen 
+          title={p.title}
+        ></iframe>
+      </div>
+      <div className="card-body">
+        <h4 className="card-title">{p.title}</h4>
+        <p className="card-desc">{p.description}</p>
+        {isAdmin && (
+          <button onClick={handleDelete} className="btn-delete">حذف العمل 🗑️</button>
+        )}
+      </div>
+    </div>
+  );
+}
